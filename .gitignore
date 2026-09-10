@@ -1,0 +1,11 @@
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux
+*.ml
+*.mli
+_CoqProject
+Makefile
+Makefile.conf
+.Makefile.d
