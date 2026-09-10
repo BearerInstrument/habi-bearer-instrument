@@ -274,6 +274,21 @@ Proof.
   intros R s s' Hsafe HR Hdown Hup.
   exact (Hsafe s s' HR Hdown Hup).
 Qed.
+Theorem reconnect_must_forbid_naive_double_spend :
+  forall R : state3 -> state3 -> Prop,
+    IsSafeReconnect R ->
+    ~ R state_double_spend (mkState3 ledger_unsafe spent_N1_N2_b1 true).
+Proof.
+  intros R Hsafe HR.
+  specialize (Hsafe state_double_spend
+                     (mkState3 ledger_unsafe spent_N1_N2_b1 true)
+                     HR eq_refl eq_refl).
+  unfold SyncedNoDoubleSpend3 in Hsafe. simpl in Hsafe.
+  specialize (Hsafe eq_refl b1).
+  assert (Hex: exists n, spent_N1_N2_b1 n b1) by (exists N1; simpl; auto).
+  specialize (Hsafe Hex N1). simpl in Hsafe. apply Hsafe. trivial.
+Qed.
+
 (* -----------------------------------------------------------------
    (4) Extraction
    ----------------------------------------------------------------- *)
