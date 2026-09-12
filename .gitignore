@@ -9,3 +9,15 @@ _CoqProject
 Makefile
 Makefile.conf
 .Makefile.d
+
+# Rust build artifacts
+target/
+
+# OCaml extraction byproducts from coqc (habi_safety.v's Extraction directive)
+*.cmi
+*.cmx
+*.o
+
+# Stray backup/scratch files
+*.bak
+*.bak.*

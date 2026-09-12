@@ -1,0 +1,13 @@
+[package]
+name = "habi_core"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "demo_scenarios"
+path = "src/main.rs"
+
+# Deliberately zero external dependencies: std only, so `cargo build`
+# and `cargo test` work fully offline on the embedded target with no
+# crates.io fetch required.
+[dependencies]

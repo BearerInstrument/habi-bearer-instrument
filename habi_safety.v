@@ -290,6 +290,108 @@ Proof.
 Qed.
 
 (* -----------------------------------------------------------------
+   (3b) Per-link model: mirrors DIL_CRDT_PerLink_Symmetric.tla.
+   PairwiseSyncedNoDoubleSpend3 is the Coq analogue of that file's
+   PairwiseSyncedNoDoubleSpend -- distinct from SyncedNoDoubleSpend3
+   above, which mirrors DIL_CRDT.tla's global-networkUp model instead.
+   ----------------------------------------------------------------- *)
+
+Record state3_link := mkState3Link {
+  ledgers3L : Node3 -> Bearer2 -> Prop;
+  spent3L   : Node3 -> Bearer2 -> Prop;
+  network3  : Node3 -> Node3 -> bool
+}.
+
+Definition PairwiseSyncedNoDoubleSpend3 (s : state3_link) : Prop :=
+  forall n1 n2 : Node3,
+    network3 s n1 n2 = true ->
+    forall b : Bearer2,
+      (spent3L s n1 b \/ spent3L s n2 b) ->
+      ~ ledgers3L s n1 b /\ ~ ledgers3L s n2 b.
+
+Definition network_all_true (a b : Node3) : bool :=
+  if Node3_eq_dec a b then false else true.
+
+Definition network_N1N2_down (a b : Node3) : bool :=
+  if Node3_eq_dec a N1 then
+    (if Node3_eq_dec b N2 then false else network_all_true a b)
+  else if Node3_eq_dec a N2 then
+    (if Node3_eq_dec b N1 then false else network_all_true a b)
+  else network_all_true a b.
+
+Definition state_double_spend_link : state3_link :=
+  mkState3Link ledger_unsafe spent_N1_N2_b1 network_N1N2_down.
+
+Definition state_double_spend_link_reconnected : state3_link :=
+  mkState3Link ledger_unsafe spent_N1_N2_b1 network_all_true.
+
+Lemma network_N1N2_down_at_N1N2 : network_N1N2_down N1 N2 = false.
+Proof.
+  unfold network_N1N2_down.
+  destruct (Node3_eq_dec N1 N1) as [_ | Hneq1].
+  - destruct (Node3_eq_dec N2 N2) as [_ | Hneq2].
+    + reflexivity.
+    + exfalso; apply Hneq2; reflexivity.
+  - exfalso; apply Hneq1; reflexivity.
+Qed.
+
+Lemma network_all_true_N1N2 : network_all_true N1 N2 = true.
+Proof.
+  unfold network_all_true.
+  destruct (Node3_eq_dec N1 N2) as [Heq | Hneq].
+  - discriminate Heq.
+  - reflexivity.
+Qed.
+
+Definition naive_link_reconnect (n m : Node3) (s s' : state3_link) : Prop :=
+  network3 s n m = false /\ network3 s' n m = true /\
+  ledgers3L s' = ledgers3L s /\ spent3L s' = spent3L s.
+
+Definition IsSafeReconnectLink (R : state3_link -> state3_link -> Prop) : Prop :=
+  forall s s' n m,
+    R s s' -> network3 s n m = false -> network3 s' n m = true ->
+    PairwiseSyncedNoDoubleSpend3 s'.
+
+Theorem naive_reconnect_link_not_safe :
+  ~ IsSafeReconnectLink (naive_link_reconnect N1 N2).
+Proof.
+  unfold IsSafeReconnectLink, naive_link_reconnect, not.
+  intros H.
+  assert (Hsafe := H state_double_spend_link state_double_spend_link_reconnected N1 N2
+                     (conj network_N1N2_down_at_N1N2
+                        (conj network_all_true_N1N2 (conj eq_refl eq_refl)))
+                     network_N1N2_down_at_N1N2 network_all_true_N1N2).
+  unfold PairwiseSyncedNoDoubleSpend3 in Hsafe.
+  specialize (Hsafe N1 N2 network_all_true_N1N2 b1 (or_introl I)).
+  destruct Hsafe as [Hsafe1 _].
+  apply Hsafe1. exact I.
+Qed.
+
+Theorem safe_reconnect_link_implies_invariant :
+  forall R s s' n m,
+    IsSafeReconnectLink R -> R s s' ->
+    network3 s n m = false -> network3 s' n m = true ->
+    PairwiseSyncedNoDoubleSpend3 s'.
+Proof.
+  intros R s s' n m Hsafe HR Hdown Hup.
+  exact (Hsafe s s' n m HR Hdown Hup).
+Qed.
+
+Theorem reconnect_link_must_forbid_naive_double_spend :
+  forall R : state3_link -> state3_link -> Prop,
+    IsSafeReconnectLink R ->
+    ~ R state_double_spend_link state_double_spend_link_reconnected.
+Proof.
+  intros R Hsafe HR.
+  assert (Hp := Hsafe state_double_spend_link state_double_spend_link_reconnected N1 N2
+                  HR network_N1N2_down_at_N1N2 network_all_true_N1N2).
+  unfold PairwiseSyncedNoDoubleSpend3 in Hp.
+  specialize (Hp N1 N2 network_all_true_N1N2 b1 (or_introl I)).
+  destruct Hp as [Hp1 _].
+  apply Hp1. exact I.
+Qed.
+
+(* -----------------------------------------------------------------
    (4) Extraction
    ----------------------------------------------------------------- *)
 Extraction Language OCaml.
