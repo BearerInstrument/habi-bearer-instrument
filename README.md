@@ -10,10 +10,12 @@ Rust port of `DIL_CRDT_PerLink_Symmetric.tla`, matching the prototype-core
 language commitment in the whitepaper (Section 2d, Section 4 — Month 6
 deliverable: Rust for memory safety on embedded naval hardware).
 
-Structurally identical to the earlier Python transliteration (kept
-alongside it, not as the deliverable) — same modules, same invariants,
-same demo/test scenarios, so the two can be diffed line-for-line against
-each other and against the `.tla` spec.
+This Rust implementation was originally developed alongside a Python
+transliteration of the same `.tla` spec, used during development to
+cross-check invariants and demo scenarios. That Python version is not
+present in this repository and could not be located on the development
+machine as of September 2026 — it should not be cited as available
+evidence until it is recovered and independently re-verified.
 
 | File | Mirrors |
 |---|---|
