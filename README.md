@@ -1,5 +1,11 @@
 # habi_core
 
+## What This Is / What This Is Not
+
+**This is:** A safety-focused formal verification project for a disconnection-tolerant bearer-instrument ledger. It includes a TLA+ model that found a genuine double-spend vulnerability in a naive disconnect/reconnect design, an independent Coq mechanization of the corrected safety invariant (10 machine-checked theorems), and a Rust implementation validated by 46 automated tests, including live reproduction across three separate networked processes over real TCP. This repository is submitted as supporting technical evidence for the HABI white paper under Army xTech|Search 10 and reflects prior work submitted under NRL Long-Range BAA N00173-24-S-BA01, Topic 55-24-02.
+
+**This is not:** A production-ready or hardened system. No liveness claim is made about disconnected nodes ("stragglers") — Conversion Day is a safety result, not a liveness guarantee. The `seed` mechanism is bootstrap-only and does not model real-world issuance. This is a transliteration of the TLA+-verified design into Rust, not an independent re-verification of the Rust code itself.
+
 Rust port of `DIL_CRDT_PerLink_Symmetric.tla`, matching the prototype-core
 language commitment in the whitepaper (Section 2d, Section 4 — Month 6
 deliverable: Rust for memory safety on embedded naval hardware).
@@ -32,8 +38,8 @@ cargo test
 ## Status: compiled, tested, and deployed
 
 All of the above is compiler-verified and passing (`cargo build` +
-`cargo test`, 44 tests: 36 unit, 7 invariant-reproduction, 1 automated
-networked integration test) as of the distributed hardening pass
+`cargo test`, 46 tests: 36 unit, 7 invariant-reproduction, 2 networked Conversion Day integration tests,
+1 networked double-spend integration test) as of the distributed hardening pass
 described below. It has also been run as three genuinely separate OS
 processes communicating over real TCP sockets, not just in-process.
 
