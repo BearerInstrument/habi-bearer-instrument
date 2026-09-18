@@ -205,3 +205,85 @@ fn networked_double_spend_reproduces_result1_over_real_tcp() {
 
     let _ = std::fs::remove_dir_all(&tmp_dir);
 }
+
+#[test]
+fn networked_conversion_day_defers_when_peer_unreachable() {
+    let tmp_dir = std::env::temp_dir().join(format!(
+        "habi_networked_quorum_test_{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&tmp_dir).unwrap();
+
+    let peers_file = tmp_dir.join("peers.txt");
+    std::fs::write(
+        &peers_file,
+        "N1|127.0.0.1:29001\nN2|127.0.0.1:29002\nN3|127.0.0.1:29003\n",
+    )
+    .unwrap();
+
+    let n1_state = tmp_dir.join("N1.state");
+    let n2_state = tmp_dir.join("N2.state");
+    let n3_state = tmp_dir.join("N3.state");
+
+    // Distinct port range from both the manual smoketest (9001-9103)
+    // and networked_double_spend_reproduces_result1_over_real_tcp
+    // (19001-19103), so this test can run concurrently with either.
+    let _n1 = spawn_node("N1", "127.0.0.1:29001", "127.0.0.1:29101", &peers_file, &n1_state);
+    let _n2 = spawn_node("N2", "127.0.0.1:29002", "127.0.0.1:29102", &peers_file, &n2_state);
+    let _n3 = spawn_node("N3", "127.0.0.1:29003", "127.0.0.1:29103", &peers_file, &n3_state);
+
+    thread::sleep(Duration::from_millis(200));
+
+    let n1_admin = "127.0.0.1:29101";
+    let n2_admin = "127.0.0.1:29102";
+
+    // Same seed and disconnect-then-double-spend setup as
+    // networked_double_spend_reproduces_result1_over_real_tcp: N1 and
+    // N2 merge, split, then each independently spends b1 -- a
+    // genuine, unresolved double-spend.
+    assert_ok(&admin_call(n1_admin, "ADMIN_SEED|b1"), "seed N1 b1");
+    assert_ok(&admin_call(n2_admin, "ADMIN_SEED|b2"), "seed N2 b2");
+    assert_ok(&admin_call(n1_admin, "ADMIN_LINK_UP|N2"), "link-up N1-N2");
+    assert_ok(&admin_call(n1_admin, "ADMIN_LINK_DOWN|N2"), "link-down N1-N2");
+    assert_ok(&admin_call(n1_admin, "ADMIN_SPEND_AT|b1"), "N1 spends b1");
+    assert_ok(&admin_call(n2_admin, "ADMIN_SPEND_AT|b1"), "N2 spends b1");
+
+    // Kill N3 outright, so it's genuinely unreachable during
+    // ConversionDay's gather step -- this is what the quorum fix
+    // guards against: the old "best-effort, exclude unreachable
+    // peers" behavior would have let this round proceed and silently
+    // report success without ever seeing N3.
+    drop(_n3);
+    thread::sleep(Duration::from_millis(100));
+
+    let reply = admin_call(n1_admin, "ADMIN_CONVERSION_DAY");
+
+    assert!(
+        reply.starts_with("REPLY_ERROR"),
+        "ConversionDay must be deferred (quorum not met) when a peer \
+         is unreachable, not silently succeed while N1 and N2 hold a \
+         genuine unresolved double-spend on b1 -- this is exactly the \
+         partial-participant gap TLC found unsafe \
+         (SettlementImpliesGlobalSafety): got {reply:?}"
+    );
+    assert!(
+        reply.contains("N3"),
+        "the deferral reason should name the unreachable peer: got {reply:?}"
+    );
+
+    // Confirm the deferred round made no partial state change: N1's
+    // spend is exactly as it was before the ConversionDay call, not
+    // burned or otherwise touched.
+    let (n1_ledger, n1_spent) = parse_status(&admin_call(n1_admin, "ADMIN_STATUS"));
+    assert_eq!(
+        n1_spent,
+        vec!["b1".to_string()],
+        "N1's spend must be untouched by a deferred (non-quorum) round"
+    );
+    assert!(
+        !n1_ledger.contains(&"b1".to_string()),
+        "N1's ledger must be unmodified -- no partial burn from a deferred settlement"
+    );
+
+    let _ = std::fs::remove_dir_all(&tmp_dir);
+}

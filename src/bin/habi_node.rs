@@ -289,6 +289,7 @@ fn handle_admin_command(
             };
 
             let self_req = PeerMessage::StatusRequest { from: self_id.clone() };
+            let mut unreachable: Vec<String> = Vec::new();
             for (peer_id, addr) in &peer_addrs {
                 match exchange_with_peer(addr, &self_req) {
                     Ok(PeerMessage::StatusReply { ledger, spent, .. }) => {
@@ -300,15 +301,34 @@ fn handle_admin_command(
                     }
                     Ok(other) => {
                         eprintln!("[warn] unexpected reply from {peer_id} during ConversionDay: {other:?}");
+                        unreachable.push(peer_id.clone());
                     }
                     Err(e) => {
-                        // Best-effort, matching conversion_day.rs's
-                        // "participants defaults to all reachable" --
-                        // an unreachable peer is simply excluded from
-                        // this round, not a hard failure.
+                        // QUORUM FIX: an unreachable peer used to be
+                        // silently excluded from the round ("best
+                        // effort"), which TLC proved unsafe -- a
+                        // partial-participant settlement can report
+                        // success while a genuinely conflicting spend
+                        // sits on the excluded node. Full quorum is
+                        // now required: record it and bail below.
                         eprintln!("[warn] {peer_id} unreachable during ConversionDay: {e}");
+                        unreachable.push(peer_id.clone());
                     }
                 }
+            }
+
+            // QUORUM FIX: refuse to settle at all unless every known
+            // peer responded. No burn, no persistence, no partial
+            // state change -- matches the TLC-verified full-quorum
+            // model (QuorumSettlementIsSafe), not the best-effort
+            // partial model that TLC found unsafe.
+            if !unreachable.is_empty() {
+                unreachable.sort();
+                return AdminReply::Error {
+                    detail: format!(
+                        "ConversionDay deferred: quorum not met, unreachable peers: {unreachable:?}"
+                    ),
+                };
             }
 
             // 2. Compute the burn set, or detect a real conflict.

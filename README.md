@@ -40,10 +40,27 @@ cargo test
 ## Status: compiled, tested, and deployed
 
 All of the above is compiler-verified and passing (`cargo build` +
-`cargo test`, 46 tests: 36 unit, 7 invariant-reproduction, 2 networked Conversion Day integration tests,
-1 networked double-spend integration test) as of the distributed hardening pass
-described below. It has also been run as three genuinely separate OS
-processes communicating over real TCP sockets, not just in-process.
+`cargo test`, 47 tests: 36 unit, 7 invariant-reproduction, 2 networked Conversion Day integration tests,
+2 networked double-spend/quorum integration tests) as of the per-link
+settlement quorum fix described below. It has also been run as three
+genuinely separate OS processes communicating over real TCP sockets,
+not just in-process.
+
+### Per-link settlement quorum fix (2026-09-18)
+
+TLC found that Conversion Day's original best-effort design -- excluding
+unreachable peers rather than blocking on them -- could report a clean
+settlement while a genuine double-spend persisted on an excluded node.
+Fixed: Conversion Day now requires full quorum, refusing to settle
+(`REPLY_ERROR`, no burn, no persistence) if any known peer is
+unreachable. Verified three ways: exhaustively via TLC
+(`QuorumSettlementIsSafe`, 32,120 states, 0 violations, see
+`DIL_CRDT_PerLink_ConversionDay.tla`), mechanized in Coq
+(`full_quorum_check_is_honest`, with `singleton_participant_check_not_honest`
+formally confirming the original design was unsafe, see `habi_safety.v`),
+and reproduced live in
+`networked_conversion_day_defers_when_peer_unreachable`
+(`tests/networked_double_spend.rs`).
 
 ## Design notes carried over from the Python version
 

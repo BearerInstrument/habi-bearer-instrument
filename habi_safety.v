@@ -102,7 +102,8 @@ Section GenericModel.
     - unfold SyncedNoDoubleSpend in *. simpl.
       intros Hup' b0 [n0 Hsp0] m Hled0.
       destruct Hsp0 as [Hsp0 | [HeqN HeqB]].
-      + destruct Hled0 as [Hled0' _].
+      + unfold spendLedgers in Hled0.
+        destruct Hled0 as [Hled0' _].
         exact (Hinv Hup' b0 (ex_intro _ n0 Hsp0) m Hled0').
       + subst b0. unfold spendLedgers in Hled0.
         destruct Hled0 as [_ Hnot].
@@ -394,6 +395,105 @@ Qed.
 (* -----------------------------------------------------------------
    (4) Extraction
    ----------------------------------------------------------------- *)
+
+(* -----------------------------------------------------------------
+   (3c) Quorum-gated Conversion Day: mirrors
+   DIL_CRDT_PerLink_ConversionDay.tla's QuorumSettlementIsSafe.
+   Fixes a confirmed defect -- a conflict check restricted to a
+   partial participant set P can report "no conflict" while a
+   genuine two-party double-spend exists outside P -- found via TLC
+   on 2026-09-17 and patched in habi_node.rs the same day.
+   ----------------------------------------------------------------- *)
+
+Definition GenuineConflict (s : state3_link) (b : Bearer2) : Prop :=
+  exists n1 n2 : Node3, n1 <> n2 /\ spent3L s n1 b /\ spent3L s n2 b.
+
+(* A conflict check restricted to participant set P is "honest" if
+   finding nothing within P implies nothing exists globally. *)
+Definition ParticipantCheckIsHonest (P : Node3 -> Prop) : Prop :=
+  forall s : state3_link,
+    (forall b, ~ (exists n1 n2, P n1 /\ P n2 /\ n1 <> n2 /\
+                    spent3L s n1 b /\ spent3L s n2 b))
+    -> ~ (exists b, GenuineConflict s b).
+
+(* The fixed design: P is every known node (full quorum). Honest by
+   construction -- no participant can be silently excluded. *)
+Theorem full_quorum_check_is_honest :
+  ParticipantCheckIsHonest (fun _ : Node3 => True).
+Proof.
+  unfold ParticipantCheckIsHonest, GenuineConflict.
+  intros s H [b [n1 [n2 [Hne [Hs1 Hs2]]]]].
+  apply (H b).
+  exists n1, n2.
+  split. exact I.
+  split. exact I.
+  split. exact Hne.
+  split. exact Hs1.
+  exact Hs2.
+Qed.
+
+(* The original design: the caller is always in P (it includes
+   itself), so the worst case -- every peer unreachable -- reduces P
+   to a singleton. No singleton can ever contain two distinct nodes,
+   so this check is vacuously "clean" regardless of what actually
+   happened elsewhere -- the confirmed bug, made concrete. *)
+Theorem singleton_participant_check_not_honest :
+  forall self : Node3, ~ ParticipantCheckIsHonest (fun n => n = self).
+Proof.
+  intros self Hhonest.
+  set (s := mkState3Link
+              (fun _ _ => False)
+              (fun n b => (n = N1 \/ n = N2) /\ b = b2)
+              network_all_true).
+  assert (Hvac : forall b, ~ (exists n1 n2, n1 = self /\ n2 = self /\
+                    n1 <> n2 /\ spent3L s n1 b /\ spent3L s n2 b)).
+  { intros b [n1 [n2 [H1 [H2 [Hne _]]]]]. apply Hne. rewrite H1, H2. reflexivity. }
+  specialize (Hhonest s Hvac).
+  apply Hhonest.
+  exists b2.
+  unfold GenuineConflict.
+  exists N1, N2.
+  repeat split;
+    try discriminate;
+    try reflexivity;
+    try (left; reflexivity);
+    try (right; reflexivity).
+Qed.
+
+(* Given honest detection (nothing found under full quorum) and a
+   full burn -- remove a bearer from every node's ledger whenever any
+   node genuinely spent it, leaving spent/network untouched -- the
+   resulting state satisfies PairwiseSyncedNoDoubleSpend3. This holds
+   independent of the post-state's network topology; the honesty
+   theorem above is what guarantees the burn only ever fires when the
+   detection was actually trustworthy. *)
+Theorem quorum_burn_implies_invariant :
+  forall s s' : state3_link,
+    network3 s' = network3 s ->
+    spent3L s' = spent3L s ->
+    (forall n b, ledgers3L s' n b <->
+       (ledgers3L s n b /\ ~ (exists m, spent3L s m b))) ->
+    PairwiseSyncedNoDoubleSpend3 s'.
+Proof.
+  intros s s' Hnet Hspent Hledg n1 n2 Hconn b Hor.
+  split.
+  - intro Hheld.
+    apply (Hledg n1 b) in Hheld.
+    destruct Hheld as [_ Hnone].
+    apply Hnone.
+    rewrite Hspent in Hor.
+    destruct Hor as [H1 | H2].
+    + exists n1. exact H1.
+    + exists n2. exact H2.
+  - intro Hheld.
+    apply (Hledg n2 b) in Hheld.
+    destruct Hheld as [_ Hnone].
+    apply Hnone.
+    rewrite Hspent in Hor.
+    destruct Hor as [H1 | H2].
+    + exists n1. exact H1.
+    + exists n2. exact H2.
+Qed.
 Extraction Language OCaml.
 Extraction "habi_safety.ml"
   Node3 Bearer2 state_exe ledgers_exe_empty
