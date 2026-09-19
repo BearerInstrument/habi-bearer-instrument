@@ -31,9 +31,10 @@ Logs: `stage2d_seed_build.log`, `stage2d_seed_test.log`,
 
 ## +1 separately-verified Coq evidence artifact
 
-`Coq-evidence-2026-09-11.tar.gz` (+ `.sha256`) — the CURRENT
-`habi_safety.v`/`habi_safety.vo` pair, containing all 10
-theorems/lemmas presently in the proof:
+`Coq-evidence-2026-09-19.tar.gz` (+ `.sha256`) — the CURRENT
+`habi_safety.v`/`habi_safety.vo` pair, containing all 13
+theorems/lemmas presently in the proof (10 original, plus 3 added
+2026-09-18 for the per-link settlement quorum fix):
 
 - `naive_reconnect_breaks_safety`
 - `run_conversion_day_exe_preserves_safety`
@@ -45,10 +46,19 @@ theorems/lemmas presently in the proof:
 - `naive_reconnect_link_not_safe`
 - `safe_reconnect_link_implies_invariant`
 - `reconnect_link_must_forbid_naive_double_spend`
+- `full_quorum_check_is_honest`
+- `singleton_participant_check_not_honest`
+- `quorum_burn_implies_invariant`
 
-Together these prove the reconnect-safety result under both the
+The original 10 prove the reconnect-safety result under both the
 global-connectivity model (`SyncedNoDoubleSpend3`) and the per-link
-model (`PairwiseSyncedNoDoubleSpend3`). This is NOT a `cargo test`
+model (`PairwiseSyncedNoDoubleSpend3`). The 3 added 2026-09-18 prove
+the per-link settlement quorum fix directly: `full_quorum_check_is_honest`
+(a full-quorum conflict check can never silently miss a real conflict),
+`singleton_participant_check_not_honest` (a concrete counterexample
+confirming the original partial-quorum design was genuinely unsafe),
+and `quorum_burn_implies_invariant` (a full-quorum burn yields
+`PairwiseSyncedNoDoubleSpend3`). This is NOT a `cargo test`
 result — it is a compiled Coq proof (`.vo`), verified here via:
 
 1. SHA-256 checksum match against the accompanying `.sha256` file
