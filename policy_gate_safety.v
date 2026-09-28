@@ -68,3 +68,51 @@ Proof.
 Qed.
 
 End PolicyGateModel.
+
+Section DeferProperty.
+
+Variable Node2 : Type.
+Variable Action2 : Type.
+Variable AllNodes2 : list Node2.
+
+Inductive Decision2 : Type :=
+  | D2None
+  | D2Approved
+  | D2Blocked
+  | D2Deferred.
+
+Record State2 := mkState2 {
+  confirmations2 : Action2 -> Node2 -> Prop;
+  decisions2     : Action2 -> Decision2;
+  networkUp2     : Node2 -> Prop
+}.
+
+Definition FullyConfirmed2 (s : State2) (a : Action2) : Prop :=
+  forall n : Node2, In n AllNodes2 -> confirmations2 s a n.
+
+(* DeferGuard requires the unreachable, unconfirmed node to be a member
+   of AllNodes2 -- the same fixed, complete node set that FullyConfirmed2
+   ranges over. This matches PolicyGate.tla, where networkUp and
+   confirmations are both indexed over the same Nodes constant. Without
+   this membership condition the two guards are not actually in tension,
+   which is the gap an earlier proof attempt (not in this file) caught. *)
+Definition DeferGuard (s : State2) (a : Action2) : Prop :=
+  exists n : Node2, In n AllNodes2 /\ ~ (networkUp2 s n) /\ ~ (confirmations2 s a n).
+
+(* THEOREM 2: DeferGuard and FullyConfirmed2 are mutually exclusive.
+   Whenever deferral is possible (an AllNodes2 member is unreachable and
+   unconfirmed), full-quorum approval is not possible. This is the formal
+   core of "defer, not fail open." *)
+Theorem defer_and_full_confirmation_exclusive :
+  forall s a,
+    DeferGuard s a -> ~ FullyConfirmed2 s a.
+Proof.
+  intros s a Hdefer Hfull.
+  unfold DeferGuard in Hdefer.
+  destruct Hdefer as [n [Hin [Hunreach Hunconf]]].
+  apply Hunconf.
+  apply Hfull.
+  exact Hin.
+Qed.
+
+End DeferProperty.
