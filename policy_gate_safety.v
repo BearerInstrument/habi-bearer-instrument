@@ -116,3 +116,112 @@ Proof.
 Qed.
 
 End DeferProperty.
+
+Section PolicyGateFull.
+
+(* Unified model matching PolicyGate.tla's full state (pending,
+   confirmations, decisions, networkUp together), used for the combined
+   Next-relation induction below. *)
+
+Variable FNode : Type.
+Variable FAction : Type.
+Variable faction_eq_dec : forall x y : FAction, {x = y} + {x <> y}.
+Variable FAllNodes : list FNode.
+
+Inductive FDecision : Type :=
+  | FDNone
+  | FDApproved
+  | FDBlocked
+  | FDDeferred.
+
+Record FState := mkFState {
+  fpending       : FAction -> Prop;
+  fconfirmations : FAction -> FNode -> Prop;
+  fdecisions     : FAction -> FDecision;
+  fnetworkUp     : FNode -> Prop
+}.
+
+Definition FFullyConfirmed (s : FState) (a : FAction) : Prop :=
+  forall n : FNode, In n FAllNodes -> fconfirmations s a n.
+
+Definition FInvariant (s : FState) : Prop :=
+  forall a : FAction, fdecisions s a = FDApproved -> FFullyConfirmed s a.
+
+
+Variable fnode_eq_dec : forall x y : FNode, {x = y} + {x <> y}.
+
+Definition FIfAction (a a' : FAction) (d default : FDecision) : FDecision :=
+  if faction_eq_dec a a' then d else default.
+
+Definition FProposeStep (s s' : FState) (a : FAction) : Prop :=
+  ~ fpending s a /\
+  fdecisions s a = FDNone /\
+  fpending s' = (fun a' => if faction_eq_dec a a' then True else fpending s a') /\
+  fconfirmations s' = fconfirmations s /\
+  fdecisions s' = fdecisions s /\
+  fnetworkUp s' = fnetworkUp s.
+
+Definition FConfirmStep (s s' : FState) (n : FNode) (a : FAction) : Prop :=
+  fpending s a /\
+  fdecisions s a = FDNone /\
+  fnetworkUp s n /\
+  fconfirmations s' = (fun a' n' =>
+    if faction_eq_dec a a'
+    then (n' = n \/ fconfirmations s a n')
+    else fconfirmations s a' n') /\
+  fpending s' = fpending s /\
+  fdecisions s' = fdecisions s /\
+  fnetworkUp s' = fnetworkUp s.
+
+Definition FBlockStep (s s' : FState) (n : FNode) (a : FAction) : Prop :=
+  fpending s a /\
+  fdecisions s a = FDNone /\
+  fnetworkUp s n /\
+  fdecisions s' = (fun a' => FIfAction a a' FDBlocked (fdecisions s a')) /\
+  fpending s' = fpending s /\
+  fconfirmations s' = fconfirmations s /\
+  fnetworkUp s' = fnetworkUp s.
+
+Definition FApproveStep (s s' : FState) (a : FAction) : Prop :=
+  fpending s a /\
+  fdecisions s a = FDNone /\
+  FFullyConfirmed s a /\
+  fdecisions s' = (fun a' => FIfAction a a' FDApproved (fdecisions s a')) /\
+  fpending s' = fpending s /\
+  fconfirmations s' = fconfirmations s /\
+  fnetworkUp s' = fnetworkUp s.
+
+Definition FDeferGuard (s : FState) (a : FAction) : Prop :=
+  exists n : FNode, In n FAllNodes /\ ~ (fnetworkUp s n) /\ ~ (fconfirmations s a n).
+
+Definition FDeferStep (s s' : FState) (a : FAction) : Prop :=
+  fpending s a /\
+  fdecisions s a = FDNone /\
+  FDeferGuard s a /\
+  fdecisions s' = (fun a' => FIfAction a a' FDDeferred (fdecisions s a')) /\
+  fpending s' = fpending s /\
+  fconfirmations s' = fconfirmations s /\
+  fnetworkUp s' = fnetworkUp s.
+
+Definition FLinkDownStep (s s' : FState) (n : FNode) : Prop :=
+  fnetworkUp s' = (fun n' => if fnode_eq_dec n n' then False else fnetworkUp s n') /\
+  fpending s' = fpending s /\
+  fconfirmations s' = fconfirmations s /\
+  fdecisions s' = fdecisions s.
+
+Definition FLinkUpStep (s s' : FState) (n : FNode) : Prop :=
+  fnetworkUp s' = (fun n' => if fnode_eq_dec n n' then True else fnetworkUp s n') /\
+  fpending s' = fpending s /\
+  fconfirmations s' = fconfirmations s /\
+  fdecisions s' = fdecisions s.
+
+Definition FNext (s s' : FState) : Prop :=
+  (exists a, FProposeStep s s' a) \/
+  (exists n a, FConfirmStep s s' n a) \/
+  (exists n a, FBlockStep s s' n a) \/
+  (exists a, FApproveStep s s' a) \/
+  (exists a, FDeferStep s s' a) \/
+  (exists n, FLinkDownStep s s' n) \/
+  (exists n, FLinkUpStep s s' n).
+
+End PolicyGateFull.
