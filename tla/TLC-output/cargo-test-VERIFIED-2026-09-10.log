@@ -1,0 +1,33 @@
+   Compiling habi_core v0.1.0 (/root/habi_formal_methods/habi_core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.45s
+     Running unittests src/lib.rs (target/debug/deps/habi_core-2a9203d342fb7f54)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/demo_scenarios-69f6384686976903)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/invariants.rs (target/debug/deps/invariants-82f71b65c2f926e2)
+
+running 7 tests
+test no_double_spend_violated_reproduces_result1 ... ok
+test conversion_day_raises_on_preexisting_double_spend ... ok
+test propagate_only_violates_pairwise_sync_result3 ... ok
+test pairwise_synced_violated_reproduces_result2 ... ok
+test conversion_day_closes_propagate_only_gap ... ok
+test conversion_day_prevents_future_double_spend ... ok
+test fresh_network_satisfies_both_invariants ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests habi_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

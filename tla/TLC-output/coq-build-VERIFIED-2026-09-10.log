@@ -1,0 +1,7 @@
+COQDEP VFILES
+COQC ./habi_safety.v
+File "./habi_safety.v", line 296, characters 0-176:
+Warning: Setting extraction output directory by default to
+"/root/habi_formal_methods/habi_core". Use "Set Extraction Output Directory"
+to set a different directory for extracted files to appear in.
+[extraction-default-directory,extraction,default]

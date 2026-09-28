@@ -1,0 +1,65 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 125 and seed -527005658634808029 with 12 workers on 12 cores with 7968MB heap and 64MB offheap memory [pid: 3442523] (Linux 6.1.0-51-amd64 amd64, Debian 17.0.20.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /root/habi_formal_methods/DIL_CRDT_PerLink_Symmetric.tla
+Parsing file /tmp/Naturals.tla
+Parsing file /tmp/FiniteSets.tla
+Parsing file /tmp/TLC.tla
+Parsing file /tmp/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module DIL_CRDT_PerLink_Symmetric
+Starting... (2026-09-08 20:29:02)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-09-08 20:29:02.
+Error: Invariant PairwiseSyncedNoDoubleSpend is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ ledgers = [N1 |-> {"b1"}, N2 |-> {"b2"}, N3 |-> {}]
+/\ network = [ N1 |-> [N1 |-> FALSE, N2 |-> TRUE, N3 |-> TRUE],
+  N2 |-> [N1 |-> TRUE, N2 |-> FALSE, N3 |-> TRUE],
+  N3 |-> [N1 |-> TRUE, N2 |-> TRUE, N3 |-> FALSE] ]
+/\ spent = [N1 |-> {}, N2 |-> {}, N3 |-> {}]
+
+State 2: <LinkDown line 30, col 3 to line 33, col 33 of module DIL_CRDT_PerLink_Symmetric>
+/\ ledgers = [N1 |-> {"b1"}, N2 |-> {"b2"}, N3 |-> {}]
+/\ network = [ N1 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N2 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N3 |-> [N1 |-> TRUE, N2 |-> TRUE, N3 |-> FALSE] ]
+/\ spent = [N1 |-> {}, N2 |-> {}, N3 |-> {}]
+
+State 3: <Propagate line 44, col 3 to line 48, col 33 of module DIL_CRDT_PerLink_Symmetric>
+/\ ledgers = [N1 |-> {"b1"}, N2 |-> {"b2"}, N3 |-> {"b1"}]
+/\ network = [ N1 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N2 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N3 |-> [N1 |-> TRUE, N2 |-> TRUE, N3 |-> FALSE] ]
+/\ spent = [N1 |-> {}, N2 |-> {}, N3 |-> {}]
+
+State 4: <LinkDown line 30, col 3 to line 33, col 33 of module DIL_CRDT_PerLink_Symmetric>
+/\ ledgers = [N1 |-> {"b1"}, N2 |-> {"b2"}, N3 |-> {"b1"}]
+/\ network = [ N1 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> FALSE],
+  N2 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N3 |-> [N1 |-> FALSE, N2 |-> TRUE, N3 |-> FALSE] ]
+/\ spent = [N1 |-> {}, N2 |-> {}, N3 |-> {}]
+
+State 5: <SpendAt line 54, col 3 to line 60, col 22 of module DIL_CRDT_PerLink_Symmetric>
+/\ ledgers = [N1 |-> {}, N2 |-> {"b2"}, N3 |-> {"b1"}]
+/\ network = [ N1 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> FALSE],
+  N2 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N3 |-> [N1 |-> FALSE, N2 |-> TRUE, N3 |-> FALSE] ]
+/\ spent = [N1 |-> {"b1"}, N2 |-> {}, N3 |-> {}]
+
+State 6: <LinkUp line 36, col 3 to line 39, col 33 of module DIL_CRDT_PerLink_Symmetric>
+/\ ledgers = [N1 |-> {}, N2 |-> {"b2"}, N3 |-> {"b1"}]
+/\ network = [ N1 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N2 |-> [N1 |-> FALSE, N2 |-> FALSE, N3 |-> TRUE],
+  N3 |-> [N1 |-> TRUE, N2 |-> TRUE, N3 |-> FALSE] ]
+/\ spent = [N1 |-> {"b1"}, N2 |-> {}, N3 |-> {}]
+
+922 states generated, 255 distinct states found, 156 states left on queue.
+The depth of the complete state graph search is 8.
+The average outdegree of the complete state graph is 3 (minimum is 0, the maximum 9 and the 95th percentile is 6).
+Finished in 00s at (2026-09-08 20:29:02)

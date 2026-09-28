@@ -1,0 +1,28 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 1 and seed 2708061318404434795 with 12 workers on 12 cores with 7968MB heap and 64MB offheap memory [pid: 3432643] (Linux 6.1.0-51-amd64 amd64, Debian 17.0.20.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /root/habi_formal_methods/DIL_CRDT.tla
+Parsing file /tmp/Naturals.tla
+Parsing file /tmp/FiniteSets.tla
+Parsing file /tmp/TLC.tla
+Parsing file /tmp/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module DIL_CRDT
+Semantic errors:
+
+*** Errors: 1
+
+line 57, col 9 to line 57, col 9 of module DIL_CRDT
+
+Multiply-defined symbol 'n': this definition or declaration conflicts 
+with the one at line 56, col 9 to line 56, col 9 of module DIL_CRDT.
+
+
+
+Starting... (2026-09-08 02:44:22)
+Error: Parsing or semantic analysis failed.
+Finished in 00s at (2026-09-08 02:44:22)
