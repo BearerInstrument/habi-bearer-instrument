@@ -62,6 +62,16 @@ and reproduced live in
 `networked_conversion_day_defers_when_peer_unreachable`
 (`tests/networked_double_spend.rs`).
 
+## Policy Gate formal verification
+
+Policy Gate safety is additionally supported by a self-contained Coq development (`policy_gate_safety.v`, public repository commit `b4caad0`) that mirrors the `PolicyGate.tla` specification. It proves, for an arbitrary set of nodes and actions, that in every state reachable through the modeled transitions, no action is approved unless every node in the fixed node list has confirmed it. The proof is machine-checked, contains no admitted lemmas, and depends on no axioms beyond Coq's core logic. It shares no definitions with any other proof file in the repository. The Coq model is a manual transcription of the TLA+ specification and does not itself verify any deployed implementation.
+
+To check it yourself, compile the file:
+
+    coqc policy_gate_safety.v
+
+Appending `Print Assumptions reachable_preserves_invariant.` to a copy of the file reports `Closed under the global context`. The TLA+ specification it mirrors is at `tla/policy-gate/PolicyGate.tla`.
+
 ## Design notes carried over from the Python version
 
 - `run_conversion_day` picks "designated reconciliation authority" as
