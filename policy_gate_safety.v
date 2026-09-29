@@ -224,4 +224,27 @@ Definition FNext (s s' : FState) : Prop :=
   (exists n, FLinkDownStep s s' n) \/
   (exists n, FLinkUpStep s s' n).
 
+
+(* THEOREM 3: FProposeStep preserves FInvariant. Trivial in the sense
+   that Propose never touches fdecisions or fconfirmations -- it only
+   adds an action to fpending -- so no approved action's status changes. *)
+Theorem fpropose_preserves_invariant :
+  forall s s' a,
+    FInvariant s ->
+    FProposeStep s s' a ->
+    FInvariant s'.
+Proof.
+  intros s s' a Hinv Hstep.
+  unfold FProposeStep in Hstep.
+  destruct Hstep as [Hnotpending [Hnone [Hpend' [Hconf' [Hdec' Hnet']]]]].
+  unfold FInvariant.
+  intros a' Happ.
+  rewrite Hdec' in Happ.
+  pose proof (Hinv a' Happ) as Hfc.
+  unfold FFullyConfirmed in *.
+  intros n Hin.
+  rewrite Hconf'.
+  exact (Hfc n Hin).
+Qed.
+
 End PolicyGateFull.
