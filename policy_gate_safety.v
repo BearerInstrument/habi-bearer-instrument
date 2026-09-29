@@ -309,4 +309,80 @@ Proof.
       exact (Hfc n0 Hin0).
 Qed.
 
+
+(* THEOREM 6: FDeferStep preserves FInvariant. Defer only ever sets a
+   decision to FDDeferred, never FDApproved -- same shape as the Block
+   proof above. *)
+Theorem fdefer_preserves_invariant :
+  forall s s' a,
+    FInvariant s ->
+    FDeferStep s s' a ->
+    FInvariant s'.
+Proof.
+  intros s s' a Hinv Hstep.
+  unfold FDeferStep in Hstep.
+  destruct Hstep as [Hpend [Hnone [Hguard [Hdec' [Hpend' [Hconf' Hnet']]]]]].
+  unfold FInvariant.
+  intros b Happ.
+  destruct (faction_eq_dec a b) as [Heq | Hneq].
+  - subst b.
+    rewrite Hdec' in Happ.
+    unfold FIfAction in Happ.
+    destruct (faction_eq_dec a a) as [Heq2 | Hneq2].
+    + discriminate Happ.
+    + exfalso. apply Hneq2. reflexivity.
+  - rewrite Hdec' in Happ.
+    unfold FIfAction in Happ.
+    destruct (faction_eq_dec a b) as [Heq3 | Hneq3].
+    + contradiction.
+    + pose proof (Hinv b Happ) as Hfc.
+      unfold FFullyConfirmed in *.
+      intros n0 Hin0.
+      rewrite Hconf'.
+      exact (Hfc n0 Hin0).
+Qed.
+
+(* THEOREM 7: FLinkDownStep preserves FInvariant. LinkDown only changes
+   fnetworkUp -- fdecisions and fconfirmations are untouched, so nothing
+   about which actions are approved or confirmed can change. *)
+Theorem flinkdown_preserves_invariant :
+  forall s s' n,
+    FInvariant s ->
+    FLinkDownStep s s' n ->
+    FInvariant s'.
+Proof.
+  intros s s' n Hinv Hstep.
+  unfold FLinkDownStep in Hstep.
+  destruct Hstep as [Hnet' [Hpend' [Hconf' Hdec']]].
+  unfold FInvariant.
+  intros b Happ.
+  rewrite Hdec' in Happ.
+  pose proof (Hinv b Happ) as Hfc.
+  unfold FFullyConfirmed in *.
+  intros n0 Hin0.
+  rewrite Hconf'.
+  exact (Hfc n0 Hin0).
+Qed.
+
+(* THEOREM 8: FLinkUpStep preserves FInvariant. Same reasoning as
+   FLinkDownStep -- only fnetworkUp changes. *)
+Theorem flinkup_preserves_invariant :
+  forall s s' n,
+    FInvariant s ->
+    FLinkUpStep s s' n ->
+    FInvariant s'.
+Proof.
+  intros s s' n Hinv Hstep.
+  unfold FLinkUpStep in Hstep.
+  destruct Hstep as [Hnet' [Hpend' [Hconf' Hdec']]].
+  unfold FInvariant.
+  intros b Happ.
+  rewrite Hdec' in Happ.
+  pose proof (Hinv b Happ) as Hfc.
+  unfold FFullyConfirmed in *.
+  intros n0 Hin0.
+  rewrite Hconf'.
+  exact (Hfc n0 Hin0).
+Qed.
+
 End PolicyGateFull.
