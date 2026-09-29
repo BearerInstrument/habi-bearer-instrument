@@ -444,4 +444,12 @@ Proof.
   discriminate Happ.
 Qed.
 
+(* Reachable states: any FInit state is reachable, and if s is
+   reachable and FNext s s' holds, then s' is reachable. This is the
+   Coq counterpart of the behaviors TLC explores from Init via Next. *)
+Inductive Reachable : FState -> Prop :=
+  | Reachable_init : forall s, FInit s -> Reachable s
+  | Reachable_step : forall s s',
+      Reachable s -> FNext s s' -> Reachable s'.
+
 End PolicyGateFull.
