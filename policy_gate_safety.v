@@ -452,4 +452,33 @@ Inductive Reachable : FState -> Prop :=
   | Reachable_step : forall s s',
       Reachable s -> FNext s s' -> Reachable s'.
 
+(* THEOREM 11: FInvariant holds in every reachable state. By induction
+   on Reachable: the base case is finit_satisfies_invariant, and the step
+   case splits FNext into its seven disjuncts and applies the matching
+   per-step preservation lemma to the induction hypothesis. *)
+Theorem reachable_preserves_invariant :
+  forall s,
+    Reachable s ->
+    FInvariant s.
+Proof.
+  intros s Hreach.
+  induction Hreach as [s0 Hinit | s0 s1 Hreach0 IH Hnext].
+  - exact (finit_satisfies_invariant s0 Hinit).
+  - destruct Hnext as
+      [ [a Hstep]
+      | [ [n [a Hstep]]
+      | [ [n [a Hstep]]
+      | [ [a Hstep]
+      | [ [a Hstep]
+      | [ [n Hstep]
+      | [n Hstep] ] ] ] ] ] ].
+    + exact (fpropose_preserves_invariant s0 s1 a IH Hstep).
+    + exact (fconfirm_preserves_invariant s0 s1 n a IH Hstep).
+    + exact (fblock_preserves_invariant s0 s1 n a IH Hstep).
+    + exact (fapprove_preserves_invariant s0 s1 a IH Hstep).
+    + exact (fdefer_preserves_invariant s0 s1 a IH Hstep).
+    + exact (flinkdown_preserves_invariant s0 s1 n IH Hstep).
+    + exact (flinkup_preserves_invariant s0 s1 n IH Hstep).
+Qed.
+
 End PolicyGateFull.
