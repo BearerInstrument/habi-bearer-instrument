@@ -419,4 +419,29 @@ Proof.
       exact (Hfc2 n0 Hin0).
 Qed.
 
+(* Initial state, mirroring Init in PolicyGate.tla: nothing pending,
+   no confirmations, every decision FDNone, every node's link up. *)
+Definition FInit (s : FState) : Prop :=
+  fpending s = (fun _ => False) /\
+  fconfirmations s = (fun _ _ => False) /\
+  fdecisions s = (fun _ => FDNone) /\
+  fnetworkUp s = (fun _ => True).
+
+(* THEOREM 10: every FInit state satisfies FInvariant. No action is
+   FDApproved at Init (every decision is FDNone), so the invariant
+   holds vacuously. *)
+Theorem finit_satisfies_invariant :
+  forall s,
+    FInit s ->
+    FInvariant s.
+Proof.
+  intros s Hinit.
+  unfold FInit in Hinit.
+  destruct Hinit as [Hpend [Hconf [Hdec Hnet]]].
+  unfold FInvariant.
+  intros a Happ.
+  rewrite Hdec in Happ.
+  discriminate Happ.
+Qed.
+
 End PolicyGateFull.
