@@ -247,4 +247,66 @@ Proof.
   exact (Hfc n Hin).
 Qed.
 
+
+(* THEOREM 4: FConfirmStep preserves FInvariant. Confirm never changes
+   fdecisions, so any already-approved action stays approved with the
+   same status; its confirmations set only grows, never shrinks, for
+   the one action being confirmed, and is untouched for every other
+   action. *)
+Theorem fconfirm_preserves_invariant :
+  forall s s' n a,
+    FInvariant s ->
+    FConfirmStep s s' n a ->
+    FInvariant s'.
+Proof.
+  intros s s' n a Hinv Hstep.
+  unfold FConfirmStep in Hstep.
+  destruct Hstep as [Hpend [Hnone [Hup [Hconf' [Hpend' [Hdec' Hnet']]]]]].
+  unfold FInvariant.
+  intros b Happ.
+  rewrite Hdec' in Happ.
+  pose proof (Hinv b Happ) as Hfc.
+  unfold FFullyConfirmed in *.
+  intros n0 Hin0.
+  rewrite Hconf'.
+  simpl.
+  destruct (faction_eq_dec a b) as [Heq | Hneq].
+  - subst b. right. exact (Hfc n0 Hin0).
+  - exact (Hfc n0 Hin0).
+Qed.
+
+(* THEOREM 5: FBlockStep preserves FInvariant. Block only ever sets a
+   decision to FDBlocked, never FDApproved, so no action can become
+   "approved" via a Block step -- the FDApproved case for the blocked
+   action itself is a contradiction (discriminate), and every other
+   action's decision and confirmations are untouched. *)
+Theorem fblock_preserves_invariant :
+  forall s s' n a,
+    FInvariant s ->
+    FBlockStep s s' n a ->
+    FInvariant s'.
+Proof.
+  intros s s' n a Hinv Hstep.
+  unfold FBlockStep in Hstep.
+  destruct Hstep as [Hpend [Hnone [Hup [Hdec' [Hpend' [Hconf' Hnet']]]]]].
+  unfold FInvariant.
+  intros b Happ.
+  destruct (faction_eq_dec a b) as [Heq | Hneq].
+  - subst b.
+    rewrite Hdec' in Happ.
+    unfold FIfAction in Happ.
+    destruct (faction_eq_dec a a) as [Heq2 | Hneq2].
+    + discriminate Happ.
+    + exfalso. apply Hneq2. reflexivity.
+  - rewrite Hdec' in Happ.
+    unfold FIfAction in Happ.
+    destruct (faction_eq_dec a b) as [Heq3 | Hneq3].
+    + contradiction.
+    + pose proof (Hinv b Happ) as Hfc.
+      unfold FFullyConfirmed in *.
+      intros n0 Hin0.
+      rewrite Hconf'.
+      exact (Hfc n0 Hin0).
+Qed.
+
 End PolicyGateFull.
