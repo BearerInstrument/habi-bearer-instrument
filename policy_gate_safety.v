@@ -385,4 +385,38 @@ Proof.
   exact (Hfc n0 Hin0).
 Qed.
 
+(* THEOREM 9: FApproveStep preserves FInvariant. This is the one step
+   where an action genuinely becomes FDApproved. For the approved action
+   itself, the FFullyConfirmed guard of the step supplies the needed
+   confirmations, and fconfirmations is unchanged by the step. For every
+   other action, fdecisions and fconfirmations are untouched, so the
+   invariant carries over from the pre-state. *)
+Theorem fapprove_preserves_invariant :
+  forall s s' a,
+    FInvariant s ->
+    FApproveStep s s' a ->
+    FInvariant s'.
+Proof.
+  intros s s' a Hinv Hstep.
+  unfold FApproveStep in Hstep.
+  destruct Hstep as [Hpend [Hnone [Hfc [Hdec' [Hpend' [Hconf' Hnet']]]]]].
+  unfold FInvariant.
+  intros b Happ.
+  destruct (faction_eq_dec a b) as [Heq | Hneq].
+  - subst b.
+    unfold FFullyConfirmed in *.
+    intros n0 Hin0.
+    rewrite Hconf'.
+    exact (Hfc n0 Hin0).
+  - rewrite Hdec' in Happ.
+    unfold FIfAction in Happ.
+    destruct (faction_eq_dec a b) as [Heq3 | Hneq3].
+    + contradiction.
+    + pose proof (Hinv b Happ) as Hfc2.
+      unfold FFullyConfirmed in *.
+      intros n0 Hin0.
+      rewrite Hconf'.
+      exact (Hfc2 n0 Hin0).
+Qed.
+
 End PolicyGateFull.
