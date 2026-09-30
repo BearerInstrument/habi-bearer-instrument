@@ -64,13 +64,19 @@ and reproduced live in
 
 ## Policy Gate formal verification
 
-Policy Gate safety is additionally supported by a self-contained Coq development (`policy_gate_safety.v`, public repository commit `b4caad0`) that mirrors the `PolicyGate.tla` specification. It proves, for an arbitrary set of nodes and actions, that in every state reachable through the modeled transitions, no action is approved unless every node in the fixed node list has confirmed it. The proof is machine-checked, contains no admitted lemmas, and depends on no axioms beyond Coq's core logic. It shares no definitions with any other proof file in the repository. The Coq model is a manual transcription of the TLA+ specification and does not itself verify any deployed implementation.
+Policy Gate is supported by a self-contained Coq development (`policy_gate_safety.v`, public repository commit `0378c71`) that mirrors the `PolicyGate.tla` specification, plus an exhaustive TLA+ check of that specification itself.
+
+**TLA+ (`tla/policy-gate/PolicyGate.tla`):** model-checked via TLC at two configurations -- 2 nodes/2 actions and 3 nodes/3 actions -- zero invariant violations found at either size.
+
+**Coq safety (`reachable_preserves_invariant`):** proves that in every state reachable through the modeled transitions, no action is approved unless every node in the fixed node list has confirmed it.
+
+**Coq liveness (`approve_eventually`):** proves that, given a trace satisfying a stated weak-fairness hypothesis on the approval transition (`WeaklyFairApprove` -- standard `[]<>enabled -> []<>taken` fairness), any action that is repeatedly enabled-or-already-decided is eventually approved. This result is conditional: it shows fair traces reach approval, not that any particular execution -- including the deployed system -- actually satisfies the fairness hypothesis.
+
+Both results are machine-checked, contain no admitted lemmas, and depend on no axioms beyond Coq's core logic (`Print Assumptions reachable_preserves_invariant.` and `Print Assumptions approve_eventually.` both report `Closed under the global context`). The file shares no definitions with any other proof file in the repository. The Coq model is a manual transcription of the TLA+ specification and does not itself verify any deployed implementation.
 
 To check it yourself, compile the file:
 
     coqc policy_gate_safety.v
-
-Appending `Print Assumptions reachable_preserves_invariant.` to a copy of the file reports `Closed under the global context`. The TLA+ specification it mirrors is at `tla/policy-gate/PolicyGate.tla`.
 
 ## Design notes carried over from the Python version
 
