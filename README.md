@@ -1,5 +1,10 @@
 # habi_core
 
+## Quick links by audience
+
+- **Engineers / technical reviewers:** see [Design decisions](#design-decisions) below for how a real double-spend bug was found via TLA+, fixed, and proven closed -- or jump straight to [Build & run](#build--run) to try it yourself.
+- **Government evaluators:** see [EVIDENCE.md](EVIDENCE.md) and the linked white papers for RFI/BAA-specific compliance details.
+
 ## What This Is / What This Is Not
 
 **This is:** A safety-focused formal verification project for a disconnection-tolerant bearer-instrument ledger. It includes a TLA+ model that found a genuine double-spend vulnerability in a naive disconnect/reconnect design, an independent Coq mechanization of a safety invariant (13 machine-checked theorems, including 3 added for the per-link quorum fix), and a Rust implementation validated by 47 automated tests, including live reproduction across three separate networked processes over real TCP. This repository is submitted as supporting technical evidence for the HABI white paper under Army xTech|Search 10 and reflects prior work submitted under NRL Long-Range BAA N00173-24-S-BA01, Topic 55-24-02.
@@ -77,6 +82,56 @@ Both results are machine-checked, contain no admitted lemmas, and depend on no a
 To check it yourself, compile the file:
 
     coqc policy_gate_safety.v
+
+## Design decisions
+
+The interesting engineering story here is the sequence of things that
+were wrong before they were right -- each caught by actually running
+the tools, not by inspection.
+
+**1. The naive reconnect design had a real double-spend bug.** The
+first TLA+ model of disconnect/reconnect found an exhaustive
+counterexample: two nodes, disconnected, each independently spend the
+same bearer, then reconnect -- nothing in the naive design detects
+the conflict. This is `Result 1` in `EVIDENCE.md`, reproducible from
+the TLC logs in `tla/TLC-output/`.
+
+**2. The first fix (Conversion Day, global-connectivity model) was
+correct for the model it assumed, but the model was wrong.** The
+original settlement barrier assumed all-or-nothing global
+connectivity. Modeling per-link connectivity instead (each pairwise
+link independently up or down, matching what the Rust implementation
+actually does) surfaced a second, subtler bug: a best-effort
+settlement round could report success while a real double-spend
+persisted on a peer it had excluded as unreachable. Detection was not
+the same guarantee as prevention.
+
+**3. The real fix was quorum, not best-effort.** Conversion Day now
+refuses to settle at all if any known peer is unreachable, rather
+than settling around the gap. This is checked three independent ways
+-- exhaustive TLA+ model checking (32,120 states, 0 violations),
+Coq theorems proving the best-effort version was genuinely unsafe and
+the quorum version is genuinely safe, and a live integration test
+that spawns three real OS processes over real TCP and confirms the
+node actually defers when a peer goes unreachable.
+
+**4. Policy Gate applies the same pattern to a different problem, and
+adds a liveness proof on top.** Safety alone ("nothing bad happens")
+doesn't rule out a system that just never decides anything. Policy
+Gate additionally proves a conditional liveness result -- under a
+standard weak-fairness assumption, an action that stays confirmable
+eventually gets approved, not stuck forever. See
+[Policy Gate formal verification](#policy-gate-formal-verification)
+above for the exact statement and its explicit caveat.
+
+**5. Every one of the above was checked by actually running `coqc`
+and TLC, not by reading the proof and assuming it worked.** More than
+one draft proof in this repository's history failed to compile as
+originally written and needed a real fix -- a missing hypothesis, a
+missing import, a genuine logical gap in an early statement. Those
+are left visible in the commit history rather than squashed away,
+because the corrections are more informative than a clean-looking
+history would be.
 
 ## Design notes carried over from the Python version
 
