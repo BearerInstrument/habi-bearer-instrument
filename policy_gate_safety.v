@@ -481,4 +481,79 @@ Proof.
     + exact (flinkup_preserves_invariant s0 s1 n IH Hstep).
 Qed.
 
+(* ---------------------------------------------------------------
+   Liveness infrastructure (in progress, not yet part of any proven
+   theorem). An FTrace is an infinite sequence of states. ValidTrace
+   requires the trace to start at an FInit state and to advance by
+   FNext at every step. ApproveEnabled captures exactly the guard of
+   FApproveStep -- pending, undecided, fully confirmed -- without
+   asserting a successor state exists (it always does, so the
+   existential form would be trivial). WeaklyFairApprove is the
+   standard weak-fairness condition: if approving a stays
+   continuously enabled from index n onward, some FApproveStep for a
+   actually occurs at or after n.
+   ------------------------------------------------------------- *)
+
+Definition FTrace : Type := nat -> FState.
+
+Definition ValidTrace (tr : FTrace) : Prop :=
+  FInit (tr 0) /\
+  forall i : nat, FNext (tr i) (tr (S i)).
+
+Definition ApproveEnabled (s : FState) (a : FAction) : Prop :=
+  fpending s a /\
+  fdecisions s a = FDNone /\
+  FFullyConfirmed s a.
+
+Definition ApproveOccursAt (tr : FTrace) (a : FAction) (j : nat) : Prop :=
+  FApproveStep (tr j) (tr (S j)) a.
+
+(* WeaklyFairApprove encodes standard weak fairness for FApproveStep
+   (the LTL formula []<>enabled -> []<>taken) via a shifting starting
+   index n: for every point n onward, if at each index the step is
+   either still enabled or has already occurred by then, the step
+   occurs by some j >= n. This is a HYPOTHESIS about which traces
+   count as fair, not something proven here -- the same role fairness
+   plays in a TLA+ spec. Because the "occurred by i" disjunct is what
+   the theorem below concludes, approve_eventually's proof is
+   intentionally thin: the substantive claim is that a trace
+   satisfying this hypothesis is assumed, not that the derivation
+   from it is deep. *)
+Definition WeaklyFairApprove (tr : FTrace) (a : FAction) : Prop :=
+  forall n : nat,
+    (forall i : nat, i >= n ->
+       ApproveEnabled (tr i) a \/ (exists k, n <= k <= i /\ ApproveOccursAt tr a k)) ->
+    exists j : nat, j >= n /\ ApproveOccursAt tr a j.
+
+
+(* THEOREM (liveness): under WeaklyFairApprove for action a, if from
+   n onward a is always either enabled-or-already-occurred, then a is
+   approved by some j >= n. The proof is intentionally short: fairness
+   already supplies the occurrence (as ApproveOccursAt); what remains
+   is unfolding FApproveStep to read fdecisions off Hdec', matching
+   the pattern used throughout this file for the other step lemmas. *)
+Theorem approve_eventually :
+  forall (tr : FTrace) (a : FAction),
+    ValidTrace tr ->
+    WeaklyFairApprove tr a ->
+    forall n : nat,
+      (forall i : nat, i >= n ->
+         ApproveEnabled (tr i) a \/ (exists k, n <= k <= i /\ ApproveOccursAt tr a k)) ->
+      exists j : nat, j >= n /\ fdecisions (tr j) a = FDApproved.
+Proof.
+  intros tr a Hvalid Hfair n Hpremise.
+  destruct (Hfair n Hpremise) as [j [Hjn Hoccurs]].
+  unfold ApproveOccursAt in Hoccurs.
+  unfold FApproveStep in Hoccurs.
+  destruct Hoccurs as [Hpend [Hnone [Hfc [Hdec' [Hpend' [Hconf' Hnet']]]]]].
+  exists (S j).
+  split.
+  - apply le_S. exact Hjn.
+  - rewrite Hdec'.
+    unfold FIfAction.
+    destruct (faction_eq_dec a a) as [Heq | Hneq].
+    + reflexivity.
+    + exfalso. apply Hneq. reflexivity.
+Qed.
+
 End PolicyGateFull.
