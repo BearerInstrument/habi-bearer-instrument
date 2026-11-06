@@ -1,5 +1,7 @@
 # habi_core — Verified Items Manifest (2026-09-11/12 distributed hardening pass)
 
+> **Status note (2026-11-06):** This manifest records the 2026-09-11/12 hardening pass, when the test suite had 46 tests. The suite now has 47: `networked_conversion_day_defers_when_peer_unreachable` was added with the quorum fix on 2026-09-18 (commit fff2dd4). The "47 independently verified items" total near the end of this file counts 46 tests plus 1 Coq evidence artifact; it is a different 47 and is not a count of tests. For the current claim-to-artifact map, see EVIDENCE.md.
+
 ## 46 automated tests — `cargo test`, all passing
 
 - 36 unit tests (wire encoding, persistence, shared_state merge/spend
