@@ -1,0 +1,37 @@
+The Coq Proof Assistant, version 8.20.1
+commit e755e1e5db98961cf8531e4bc17edc9b8aaf8363
+2026-11-06
+== habi_safety
+File "./habi_safety.v", line 498, characters 0-176:
+Warning: Setting extraction output directory by default to
+"/tmp/tmp.NPbONW4IGr". Use "Set Extraction Output Directory" or command line
+option "-output-directory" to set a different directory for extracted files
+to appear in. [extraction-default-directory,extraction,default]
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+== policy_gate_safety
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
